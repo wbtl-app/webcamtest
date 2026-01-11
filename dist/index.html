@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Webcam Test - wbtl.app</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%239b7bd4'/><stop offset='100%25' stop-color='%238a6ac3'/></linearGradient></defs><rect width='32' height='32' rx='6' fill='url(%23g)'/><g transform='translate(4,4)' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' fill='none'><rect x='3' y='6' width='14' height='12' rx='2'/><path d='M17 9l4-2v10l-4-2'/></g></svg>">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-secondary: #f5f5f7;
+      --text: #1d1d1f;
+      --text-secondary: #6e6e73;
+      --accent: #0071e3;
+      --accent-hover: #0077ed;
+      --border: #d2d2d7;
+      --toggle-bg: #e5e5e5;
+      --toggle-knob: #ffffff;
+      --tool-gradient-start: #9b7bd4;
+      --tool-gradient-end: #8a6ac3;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #000000;
+        --bg-secondary: #1c1c1e;
+        --text: #f5f5f7;
+        --text-secondary: #98989d;
+        --accent: #2997ff;
+        --accent-hover: #40a9ff;
+        --border: #38383a;
+        --toggle-bg: #3a3a3c;
+        --toggle-knob: #ffffff;
+      }
+    }
+
+    [data-theme="dark"] {
+      --bg: #000000;
+      --bg-secondary: #1c1c1e;
+      --text: #f5f5f7;
+      --text-secondary: #98989d;
+      --accent: #2997ff;
+      --accent-hover: #40a9ff;
+      --border: #38383a;
+      --toggle-bg: #3a3a3c;
+      --toggle-knob: #ffffff;
+    }
+
+    [data-theme="light"] {
+      --bg: #ffffff;
+      --bg-secondary: #f5f5f7;
+      --text: #1d1d1f;
+      --text-secondary: #6e6e73;
+      --accent: #0071e3;
+      --accent-hover: #0077ed;
+      --border: #d2d2d7;
+      --toggle-bg: #e5e5e5;
+      --toggle-knob: #ffffff;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.5rem;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .tool-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--tool-gradient-start), var(--tool-gradient-end));
+    }
+
+    .tool-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .tool-name {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .back-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s ease;
+    }
+
+    .back-link:hover {
+      color: var(--accent);
+    }
+
+    .theme-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .theme-toggle svg {
+      width: 16px;
+      height: 16px;
+      stroke: var(--text-secondary);
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      background: var(--toggle-bg);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      background: var(--toggle-knob);
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      transition: transform 0.2s ease;
+    }
+
+    [data-theme="dark"] .toggle-switch::after,
+    :root:not([data-theme="light"]) .toggle-switch::after {
+      transform: translateX(20px);
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root:not([data-theme="dark"]) .toggle-switch::after {
+        transform: translateX(0);
+      }
+    }
+
+    main {
+      flex: 1;
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+
+    .content {
+      width: 100%;
+    }
+
+    /* Webcam specific styles */
+    .video-container {
+      position: relative;
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      overflow: hidden;
+      aspect-ratio: 16 / 9;
+    }
+
+    .video-container video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    .video-container video.active {
+      display: block;
+    }
+
+    .video-container video.mirror {
+      transform: scaleX(-1);
+    }
+
+    .video-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .video-placeholder:hover {
+      background: var(--border);
+    }
+
+    .video-placeholder.hidden {
+      display: none;
+    }
+
+    .video-placeholder svg {
+      width: 64px;
+      height: 64px;
+      stroke: var(--text-secondary);
+      fill: none;
+      stroke-width: 1.5;
+    }
+
+    .video-placeholder p {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .error-state {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .error-state.active {
+      display: flex;
+    }
+
+    .error-state svg {
+      width: 48px;
+      height: 48px;
+      stroke: #ff453a;
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .error-state h3 {
+      color: #ff453a;
+      font-size: 1.1rem;
+    }
+
+    .error-state p {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      max-width: 400px;
+    }
+
+    .error-state button {
+      margin-top: 0.5rem;
+      padding: 0.5rem 1.5rem;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .error-state button:hover {
+      background: var(--accent-hover);
+    }
+
+    .info-bar {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .info-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .info-item svg {
+      width: 18px;
+      height: 18px;
+      stroke: var(--text-secondary);
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .info-item strong {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .controls-bar {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .control-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.25rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .control-btn:hover {
+      background: var(--border);
+    }
+
+    .control-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .control-btn svg {
+      width: 20px;
+      height: 20px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .control-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    .control-btn.primary {
+      background: linear-gradient(135deg, var(--tool-gradient-start), var(--tool-gradient-end));
+      border-color: transparent;
+      color: white;
+    }
+
+    .control-btn.primary:hover {
+      opacity: 0.9;
+    }
+
+    .camera-select {
+      padding: 0.75rem 1rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.9rem;
+      cursor: pointer;
+      min-width: 200px;
+      max-width: 300px;
+    }
+
+    .camera-select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .screenshot-preview {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      margin-top: 2rem;
+      padding: 1rem;
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      max-width: 300px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .screenshot-preview.active {
+      display: flex;
+    }
+
+    .screenshot-preview img {
+      max-width: 100%;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .screenshot-preview a {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    .screenshot-preview a:hover {
+      text-decoration: underline;
+    }
+
+    .fullscreen-container {
+      display: none;
+    }
+
+    .fullscreen-container:fullscreen,
+    .fullscreen-container:-webkit-full-screen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: black;
+    }
+
+    .fullscreen-container video {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    @media (max-width: 640px) {
+      .tool-name {
+        font-size: 1.1rem;
+      }
+
+      .header-right {
+        gap: 1rem;
+      }
+
+      .back-link {
+        font-size: 0.8rem;
+      }
+
+      .video-container {
+        border-radius: 8px;
+      }
+
+      .info-bar {
+        gap: 1rem;
+      }
+
+      .controls-bar {
+        gap: 0.5rem;
+      }
+
+      .control-btn {
+        padding: 0.6rem 1rem;
+        font-size: 0.85rem;
+      }
+
+      .control-btn span {
+        display: none;
+      }
+
+      .camera-select {
+        min-width: 150px;
+        font-size: 0.85rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <div class="tool-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="6" width="14" height="12" rx="2"/>
+          <path d="M17 9l4-2v10l-4-2"/>
+        </svg>
+      </div>
+      <div class="tool-name">Webcam Test</div>
+    </div>
+    <div class="header-right">
+      <a href="https://wbtl.app" class="back-link">wbtl.app</a>
+      <div class="theme-toggle">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+        <div class="toggle-switch" onclick="toggleTheme()" role="button" tabindex="0" aria-label="Toggle dark mode"></div>
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="content">
+      <div class="video-container" id="videoContainer">
+        <video id="videoElement" autoplay playsinline></video>
+
+        <div class="video-placeholder" id="placeholder" onclick="startCamera()">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="6" width="14" height="12" rx="2"/>
+            <path d="M17 9l4-2v10l-4-2"/>
+          </svg>
+          <p id="placeholderText">Click to enable camera</p>
+        </div>
+
+        <div class="error-state" id="errorState">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 8v4M12 16h.01"/>
+          </svg>
+          <h3 id="errorTitle">Camera Error</h3>
+          <p id="errorMessage">Could not access camera.</p>
+          <button onclick="retryCamera()">Try Again</button>
+        </div>
+      </div>
+
+      <div class="info-bar" id="infoBar" style="display: none;">
+        <div class="info-item">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+          </svg>
+          <span>Resolution: <strong id="resolution">--</strong></span>
+        </div>
+        <div class="info-item">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 6v6l4 2"/>
+          </svg>
+          <span>FPS: <strong id="fps">--</strong></span>
+        </div>
+        <div class="info-item" id="cameraNameItem">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="6" width="14" height="12" rx="2"/>
+            <path d="M17 9l4-2v10l-4-2"/>
+          </svg>
+          <span>Camera: <strong id="cameraName">--</strong></span>
+        </div>
+      </div>
+
+      <div class="controls-bar" id="controlsBar" style="display: none;">
+        <select class="camera-select" id="cameraSelect" onchange="switchCamera(this.value)">
+          <option value="">Select camera...</option>
+        </select>
+
+        <button class="control-btn active" id="mirrorBtn" onclick="toggleMirror()">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3"/>
+            <path d="M21 8V5a2 2 0 0 0-2-2h-3"/>
+            <path d="M3 16v3a2 2 0 0 0 2 2h3"/>
+            <path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+          </svg>
+          <span>Mirror</span>
+        </button>
+
+        <button class="control-btn primary" id="screenshotBtn" onclick="takeScreenshot()">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+          <span>Screenshot</span>
+        </button>
+
+        <button class="control-btn" id="fullscreenBtn" onclick="toggleFullscreen()">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+          </svg>
+          <span>Fullscreen</span>
+        </button>
+      </div>
+
+      <div class="screenshot-preview" id="screenshotPreview">
+        <img id="screenshotImage" alt="Screenshot preview">
+        <a id="screenshotDownload" href="#" download>Download Screenshot</a>
+      </div>
+
+      <div class="fullscreen-container" id="fullscreenContainer">
+        <video id="fullscreenVideo" autoplay playsinline muted></video>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // State
+    let stream = null;
+    let isMirrored = localStorage.getItem('webcamtest-mirror') !== 'false';
+    let currentDeviceId = localStorage.getItem('webcamtest-lastCamera') || null;
+    let cameras = [];
+
+    // DOM elements
+    const videoElement = document.getElementById('videoElement');
+    const placeholder = document.getElementById('placeholder');
+    const placeholderText = document.getElementById('placeholderText');
+    const errorState = document.getElementById('errorState');
+    const errorTitle = document.getElementById('errorTitle');
+    const errorMessage = document.getElementById('errorMessage');
+    const infoBar = document.getElementById('infoBar');
+    const controlsBar = document.getElementById('controlsBar');
+    const resolutionEl = document.getElementById('resolution');
+    const fpsEl = document.getElementById('fps');
+    const cameraNameEl = document.getElementById('cameraName');
+    const cameraSelect = document.getElementById('cameraSelect');
+    const mirrorBtn = document.getElementById('mirrorBtn');
+    const screenshotPreview = document.getElementById('screenshotPreview');
+    const screenshotImage = document.getElementById('screenshotImage');
+    const screenshotDownload = document.getElementById('screenshotDownload');
+    const fullscreenContainer = document.getElementById('fullscreenContainer');
+    const fullscreenVideo = document.getElementById('fullscreenVideo');
+
+    // Initialize mirror state
+    if (isMirrored) {
+      videoElement.classList.add('mirror');
+      mirrorBtn.classList.add('active');
+    } else {
+      mirrorBtn.classList.remove('active');
+    }
+
+    async function startCamera(deviceId = null) {
+      // Show loading state
+      placeholder.querySelector('svg').style.display = 'none';
+      placeholderText.textContent = 'Requesting camera access...';
+
+      const spinnerExists = placeholder.querySelector('.spinner');
+      if (!spinnerExists) {
+        const spinner = document.createElement('div');
+        spinner.className = 'spinner';
+        placeholder.insertBefore(spinner, placeholderText);
+      }
+
+      errorState.classList.remove('active');
+
+      const constraints = {
+        video: deviceId
+          ? { deviceId: { exact: deviceId } }
+          : { facingMode: 'user' }
+      };
+
+      try {
+        // Stop existing stream if any
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+        }
+
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        videoElement.srcObject = stream;
+
+        await videoElement.play();
+
+        // Show video
+        videoElement.classList.add('active');
+        placeholder.classList.add('hidden');
+        infoBar.style.display = 'flex';
+        controlsBar.style.display = 'flex';
+
+        // Apply mirror
+        if (isMirrored) {
+          videoElement.classList.add('mirror');
+        }
+
+        // Get cameras after permission granted
+        await populateCameras();
+
+        // Update info
+        updateVideoInfo();
+
+        // Store last camera
+        const track = stream.getVideoTracks()[0];
+        if (track) {
+          const settings = track.getSettings();
+          if (settings.deviceId) {
+            currentDeviceId = settings.deviceId;
+            localStorage.setItem('webcamtest-lastCamera', settings.deviceId);
+            cameraSelect.value = settings.deviceId;
+          }
+        }
+
+      } catch (err) {
+        handleCameraError(err);
+      }
+    }
+
+    async function populateCameras() {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        cameras = devices.filter(device => device.kind === 'videoinput');
+
+        cameraSelect.innerHTML = '';
+        cameras.forEach((camera, index) => {
+          const option = document.createElement('option');
+          option.value = camera.deviceId;
+          option.textContent = camera.label || `Camera ${index + 1}`;
+          cameraSelect.appendChild(option);
+        });
+
+        if (currentDeviceId) {
+          cameraSelect.value = currentDeviceId;
+        }
+      } catch (err) {
+        console.error('Error enumerating devices:', err);
+      }
+    }
+
+    function updateVideoInfo() {
+      const width = videoElement.videoWidth;
+      const height = videoElement.videoHeight;
+      resolutionEl.textContent = `${width} x ${height}`;
+
+      const track = stream?.getVideoTracks()[0];
+      if (track) {
+        const settings = track.getSettings();
+        const fps = settings.frameRate ? Math.round(settings.frameRate) : 'N/A';
+        fpsEl.textContent = fps;
+
+        const label = track.label || 'Unknown';
+        cameraNameEl.textContent = label.length > 30 ? label.substring(0, 30) + '...' : label;
+      }
+    }
+
+    function handleCameraError(err) {
+      console.error('Camera error:', err);
+
+      // Reset placeholder
+      const spinner = placeholder.querySelector('.spinner');
+      if (spinner) spinner.remove();
+      placeholder.querySelector('svg').style.display = 'block';
+      placeholderText.textContent = 'Click to enable camera';
+      placeholder.classList.remove('hidden');
+
+      let title = 'Camera Error';
+      let message = 'Could not access camera. Please try again.';
+
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        title = 'Permission Denied';
+        message = 'Camera permission was denied. Please allow camera access in your browser settings and try again.';
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        title = 'No Camera Found';
+        message = 'No camera was detected. Please connect a camera and try again.';
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        title = 'Camera In Use';
+        message = 'Your camera may be in use by another application. Please close other apps using the camera and try again.';
+      } else if (err.name === 'OverconstrainedError') {
+        title = 'Camera Not Available';
+        message = 'The selected camera is not available. Please try a different camera.';
+      }
+
+      errorTitle.textContent = title;
+      errorMessage.textContent = message;
+      errorState.classList.add('active');
+      placeholder.classList.add('hidden');
+    }
+
+    function retryCamera() {
+      errorState.classList.remove('active');
+      placeholder.classList.remove('hidden');
+      startCamera(currentDeviceId);
+    }
+
+    function switchCamera(deviceId) {
+      if (deviceId && stream) {
+        startCamera(deviceId);
+      }
+    }
+
+    function toggleMirror() {
+      isMirrored = !isMirrored;
+      localStorage.setItem('webcamtest-mirror', isMirrored);
+
+      if (isMirrored) {
+        videoElement.classList.add('mirror');
+        mirrorBtn.classList.add('active');
+      } else {
+        videoElement.classList.remove('mirror');
+        mirrorBtn.classList.remove('active');
+      }
+    }
+
+    function takeScreenshot() {
+      if (!stream) return;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = videoElement.videoWidth;
+      canvas.height = videoElement.videoHeight;
+
+      const ctx = canvas.getContext('2d');
+
+      // If mirrored, flip the canvas
+      if (isMirrored) {
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+      }
+
+      ctx.drawImage(videoElement, 0, 0);
+
+      const dataUrl = canvas.toDataURL('image/png');
+      const filename = `webcamtest-${Date.now()}.png`;
+
+      // Show preview
+      screenshotImage.src = dataUrl;
+      screenshotDownload.href = dataUrl;
+      screenshotDownload.download = filename;
+      screenshotPreview.classList.add('active');
+
+      // Auto download
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = dataUrl;
+      link.click();
+    }
+
+    function toggleFullscreen() {
+      const container = document.getElementById('videoContainer');
+
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (container.requestFullscreen) {
+          container.requestFullscreen();
+        } else if (container.webkitRequestFullscreen) {
+          container.webkitRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+      }
+    }
+
+    // Theme functions
+    function getSystemTheme() {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+
+    function getStoredTheme() {
+      return localStorage.getItem('wbtl-theme');
+    }
+
+    function setTheme(theme) {
+      if (theme === 'system') {
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.removeItem('wbtl-theme');
+      } else {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('wbtl-theme', theme);
+      }
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme');
+      const system = getSystemTheme();
+
+      if (!current) {
+        setTheme(system === 'dark' ? 'light' : 'dark');
+      } else {
+        if (current === system) {
+          setTheme(current === 'dark' ? 'light' : 'dark');
+        } else {
+          setTheme('system');
+        }
+      }
+    }
+
+    // Initialize theme from storage
+    (function() {
+      const stored = getStoredTheme();
+      if (stored) {
+        setTheme(stored);
+      }
+    })();
+
+    // Handle keyboard for toggle
+    document.querySelector('.toggle-switch').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleTheme();
+      }
+    });
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    });
+
+    // Listen for device changes
+    navigator.mediaDevices.addEventListener('devicechange', async () => {
+      if (stream) {
+        await populateCameras();
+      }
+    });
+
+    // Update video info periodically
+    setInterval(() => {
+      if (stream && videoElement.videoWidth > 0) {
+        updateVideoInfo();
+      }
+    }, 1000);
+  </script>
+</body>
+</html>
